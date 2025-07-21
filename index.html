@@ -1,37 +1,90 @@
-<!-- TO ACHIEVE THIS TYPE IN "!" AND PRESS "TAB" -->
 <!DOCTYPE html>
-<!-- html below is a tag pair. "lang" is a language setting and is set to English. Html has 2 children: head and body -->
 <html lang="en">
-<!-- head below is a tag pair. It contains metadata about the document and links to external resources. -->
 <head>
-    <!-- meta below is a tag pair. It provides metadata about the HTML document. chrset = "UTF-8" is pulling all latin charachters-->
-    <meta charset="UTF-8">
-    <!-- Tag pair. Provides metadata about the HTML document. name = "viewport" is setting the viewport to the device's width and initial scale to 1.0 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Dev Starter</title>
-
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" href="/favicons/favicon-48x48.png" sizes="48x48" />
-    <link rel="icon" type="image/svg+xml" href="/favicons/favicon.svg" />
-    <link rel="shortcut icon" href="/favicons/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Web Dev Starter" />
-    <link rel="manifest" href="/favicons/site.webmanifest" />    
-
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="style.css">
-
-    <!-- JavaScript -->
-     <!-- script:src and then press tab for shortcut-->
-    <script src="script.js" defer> </script>
-
+  <meta charset="UTF-8" />
+  <title>Outline Image</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; }
+    canvas { margin-top: 1em; }
+  </style>
 </head>
-
-<!-- body below is a tag pair. It contains the content of the document. -->
 <body>
+  <h2>Upload Transparent Image & Add Outline</h2>
+  <input type="file" id="upload" accept="image/*">
+  <br />
+  <canvas id="canvas"></canvas>
+  <br />
+  <button id="download" disabled>Download Outlined Image</button>
 
-    <h1>Web Dev Starter</h1>
+  <script>
+    const upload = document.getElementById('upload');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const downloadBtn = document.getElementById('download');
 
+    function isEdge(x, y, imageData, width, height) {
+      const index = (y * width + x) * 4;
+      if (imageData.data[index + 3] === 0) return false;
+
+      // Check surrounding 3px radius
+      for (let dy = -3; dy <= 3; dy++) {
+        for (let dx = -3; dx <= 3; dx++) {
+          const nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+          const nIdx = (ny * width + nx) * 4;
+          if (imageData.data[nIdx + 3] === 0) return true;
+        }
+      }
+      return false;
+    }
+
+    upload.addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        const edgeData = ctx.getImageData(0, 0, img.width, img.height);
+
+        // Outline: black 3px border
+        for (let y = 0; y < img.height; y++) {
+          for (let x = 0; x < img.width; x++) {
+            if (isEdge(x, y, imageData, img.width, img.height)) {
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  const nx = x + dx, ny = y + dy;
+                  if (nx < 0 || ny < 0 || nx >= img.width || ny >= img.height) continue;
+                  const i = (ny * img.width + nx) * 4;
+                  edgeData.data[i + 0] = 0;   // Red
+                  edgeData.data[i + 1] = 0;   // Green
+                  edgeData.data[i + 2] = 0;   // Blue
+                  edgeData.data[i + 3] = 255; // Alpha
+                }
+              }
+            }
+          }
+        }
+
+        ctx.putImageData(edgeData, 0, 0);
+        ctx.drawImage(img, 0, 0); // Redraw image on top of outline
+        downloadBtn.disabled = false;
+      };
+
+      img.src = URL.createObjectURL(file);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'outlined-image.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  </script>
 </body>
 </html>
-
